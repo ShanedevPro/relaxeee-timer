@@ -24,6 +24,7 @@ Set your interval, press Start, and Windows notifications will appear on schedul
 
 - Start switches into a focus view (big countdown + running animal).
 - Stop returns to settings.
+- The timer auto-switches between Focus and Relax (Pomodoro-style).
 
 ## Developer setup
 

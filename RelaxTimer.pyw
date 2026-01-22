@@ -31,13 +31,16 @@ class RelaxTimerApp:
         ctk.set_appearance_mode("Dark")
         ctk.set_default_color_theme("green")
 
-        self.interval_var = tk.StringVar(value="25")
+        # Pomodoro-style durations (minutes)
+        self.focus_minutes_var = tk.StringVar(value="25")
+        self.break_minutes_var = tk.StringVar(value="5")
         self.message_var = tk.StringVar(
             value="Take a breath and stretch for a couple of minutes."
         )
         self.status_var = tk.StringVar(value="Idle. Set your interval and press Start.")
         self.focus_status_var = tk.StringVar(value="Next reminder in 25:00.")
         self.countdown_var = tk.StringVar(value="25:00")
+        self.phase_var = tk.StringVar(value="FOCUS")
         self.cute_mode_var = tk.BooleanVar(value=False)
         self.animal_var = tk.StringVar(value="cat")
         self.palette_var = tk.StringVar(value="Emerald")
@@ -50,7 +53,9 @@ class RelaxTimerApp:
         self.runner_speed = 2
 
         self.running = False
-        self.interval_minutes = 25.0
+        self.focus_minutes = 25.0
+        self.break_minutes = 5.0
+        self.phase: str = "focus"  # "focus" | "break"
         self.next_fire: Optional[datetime.datetime] = None
         self.timer_id: Optional[str] = None
         self.is_focus_view = False
@@ -109,6 +114,14 @@ class RelaxTimerApp:
         )
         self.countdown_label.pack(anchor="center", pady=(10, 5))
 
+        self.phase_label = ctk.CTkLabel(
+            self.focus_frame,
+            textvariable=self.phase_var,
+            font=ctk.CTkFont(family="Consolas", size=14, weight="bold"),
+            text_color=TERMINAL_FG,
+        )
+        self.phase_label.pack(anchor="center", pady=(0, 5))
+
         self.focus_status_label = ctk.CTkLabel(
             self.focus_frame,
             textvariable=self.focus_status_var,
@@ -138,7 +151,7 @@ class RelaxTimerApp:
 
         self.interval_label = ctk.CTkLabel(
             form_frame,
-            text="Interval (min):",
+            text="Focus (min):",
             font=TERMINAL_FONT,
             text_color=TERMINAL_FG,
         )
@@ -146,7 +159,7 @@ class RelaxTimerApp:
 
         self.interval_entry = ctk.CTkEntry(
             form_frame,
-            textvariable=self.interval_var,
+            textvariable=self.focus_minutes_var,
             width=100,
             placeholder_text="25",
             font=TERMINAL_FONT,
@@ -155,6 +168,26 @@ class RelaxTimerApp:
             text_color=TERMINAL_FG,
         )
         self.interval_entry.grid(row=0, column=1, sticky="w", padx=(10, 0), pady=(0, 5))
+
+        self.break_label = ctk.CTkLabel(
+            form_frame,
+            text="Relax (min):",
+            font=TERMINAL_FONT,
+            text_color=TERMINAL_FG,
+        )
+        self.break_label.grid(row=0, column=2, sticky="w", padx=(18, 0), pady=(0, 5))
+
+        self.break_entry = ctk.CTkEntry(
+            form_frame,
+            textvariable=self.break_minutes_var,
+            width=90,
+            placeholder_text="5",
+            font=TERMINAL_FONT,
+            fg_color="transparent",
+            border_color=TERMINAL_FG,
+            text_color=TERMINAL_FG,
+        )
+        self.break_entry.grid(row=0, column=3, sticky="w", padx=(10, 0), pady=(0, 5))
 
         self.message_label = ctk.CTkLabel(
             form_frame,
@@ -174,7 +207,9 @@ class RelaxTimerApp:
             border_color=TERMINAL_FG,
             text_color=TERMINAL_FG,
         )
-        self.message_entry.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=(15, 5))
+        self.message_entry.grid(
+            row=1, column=1, columnspan=3, sticky="w", padx=(10, 0), pady=(15, 5)
+        )
 
         self.animal_label = ctk.CTkLabel(
             form_frame,
@@ -263,19 +298,19 @@ class RelaxTimerApp:
 
     def start(self) -> None:
         try:
-            interval = float(self.interval_var.get().strip())
+            focus_minutes = float(self.focus_minutes_var.get().strip())
+            break_minutes = float(self.break_minutes_var.get().strip())
         except ValueError:
-            self.status_var.set("Please enter a valid number for the interval.")
+            self.status_var.set("Please enter valid numbers for focus/relax minutes.")
             return
-        if interval <= 0:
-            self.status_var.set("Interval must be greater than zero.")
+        if focus_minutes <= 0 or break_minutes <= 0:
+            self.status_var.set("Focus/relax minutes must be greater than zero.")
             return
 
-        self.interval_minutes = interval
+        self.focus_minutes = focus_minutes
+        self.break_minutes = break_minutes
         self.running = True
-        self.next_fire = datetime.datetime.now() + datetime.timedelta(
-            minutes=self.interval_minutes
-        )
+        self._set_phase("focus")
 
         self.start_btn.configure(state="disabled")
         self.status_var.set("Timer running...")
@@ -288,6 +323,8 @@ class RelaxTimerApp:
         if self.timer_id is not None:
             self.root.after_cancel(self.timer_id)
             self.timer_id = None
+        self.next_fire = None
+        self._set_phase("focus")
 
         self.start_btn.configure(state="normal")
         self.status_var.set("Timer stopped.")
@@ -323,18 +360,13 @@ class RelaxTimerApp:
     def _fire_reminder(self) -> None:
         if not self.running:
             return
-        message = self.message_var.get().strip()
-        if not message:
-            message = "Time to take a short break."
-
-        if self.cute_mode_var.get():
-            suffixes = [" Meow!", " Boop!", " Stretch!", " :3"]
-            message += random.choice(suffixes)
-
-        send_notification("Relax Timer", message)
-        self.next_fire = datetime.datetime.now() + datetime.timedelta(
-            minutes=self.interval_minutes
-        )
+        if self.phase == "focus":
+            message = self.message_var.get().strip() or "Time to relax."
+            send_notification("Relax Timer", f"Focus finished. {message}")
+            self._set_phase("break")
+        else:
+            send_notification("Relax Timer", "Relax finished. Back to focus.")
+            self._set_phase("focus")
         self._schedule_next_reminder()
 
     def _schedule_status_update(self) -> None:
@@ -351,7 +383,10 @@ class RelaxTimerApp:
         minutes, seconds = divmod(seconds_left, 60)
         self.countdown_var.set(f"{minutes:02d}:{seconds:02d}")
         next_at = self.next_fire.strftime("%H:%M:%S")
-        self.focus_status_var.set(f"Next reminder at {next_at}.")
+        if self.phase == "focus":
+            self.focus_status_var.set(f"Focus ends at {next_at}.")
+        else:
+            self.focus_status_var.set(f"Relax ends at {next_at}.")
 
     def _apply_palette(self, name: str) -> None:
         palette = PALETTES.get(name, PALETTES["Emerald"])
@@ -363,14 +398,17 @@ class RelaxTimerApp:
         self.title_label.configure(text_color=palette["fg"])
         self.desc_label.configure(text_color=palette["fg"])
         self.interval_label.configure(text_color=palette["fg"])
+        self.break_label.configure(text_color=palette["fg"])
         self.message_label.configure(text_color=palette["fg"])
         self.animal_label.configure(text_color=palette["fg"])
         self.palette_label.configure(text_color=palette["fg"])
         self.status_label.configure(text_color=palette["fg"])
         self.countdown_label.configure(text_color=palette["fg"])
+        self.phase_label.configure(text_color=palette["fg"])
         self.focus_status_label.configure(text_color=palette["fg"])
 
         self.interval_entry.configure(border_color=palette["fg"], text_color=palette["fg"])
+        self.break_entry.configure(border_color=palette["fg"], text_color=palette["fg"])
         self.message_entry.configure(border_color=palette["fg"], text_color=palette["fg"])
 
         self.cute_switch.configure(
@@ -451,6 +489,21 @@ class RelaxTimerApp:
             self.runner_x = -self._estimate_animal_width(frames[0])
         self.runner_canvas.coords(self.runner_id, self.runner_x, 10)
         self.animation_id = self.root.after(60, self._animate_runner)
+
+    def _set_phase(self, phase: str) -> None:
+        self.phase = phase
+        if phase == "focus":
+            self.phase_var.set("FOCUS")
+            self.runner_speed = 2
+            self.next_fire = datetime.datetime.now() + datetime.timedelta(
+                minutes=self.focus_minutes
+            )
+        else:
+            self.phase_var.set("RELAX")
+            self.runner_speed = 1
+            self.next_fire = datetime.datetime.now() + datetime.timedelta(
+                minutes=self.break_minutes
+            )
 
 
 def main() -> None:

@@ -5,6 +5,7 @@ Simple Windows-friendly relax timer with notifications.
 
 import datetime
 import tkinter as tk
+from tkinter import messagebox
 import customtkinter as ctk
 import random
 from typing import Optional
@@ -55,7 +56,7 @@ class RelaxTimerApp:
         self.running = False
         self.focus_minutes = 25.0
         self.break_minutes = 5.0
-        self.phase: str = "focus"  # "focus" | "break"
+        self.phase: str = "focus"  # "focus" | "break" | "ready"
         self.next_fire: Optional[datetime.datetime] = None
         self.timer_id: Optional[str] = None
         self.is_focus_view = False
@@ -145,6 +146,20 @@ class RelaxTimerApp:
             hover_color="#28CC28",
         )
         self.focus_stop_btn.pack(side="top", pady=(0, 10))
+
+        self.next_round_btn = ctk.CTkButton(
+            focus_button_frame,
+            text="[ START NEXT ROUND ]",
+            command=self._start_next_round_from_focus,
+            width=220,
+            height=35,
+            font=TERMINAL_FONT_BOLD,
+            fg_color=TERMINAL_FG,
+            text_color="black",
+            hover_color="#28CC28",
+        )
+        self.next_round_btn.pack(side="top")
+        self.next_round_btn.pack_forget()
 
         form_frame = ctk.CTkFrame(self.settings_frame, fg_color="transparent")
         form_frame.pack(fill="x")
@@ -315,6 +330,7 @@ class RelaxTimerApp:
         self.start_btn.configure(state="disabled")
         self.status_var.set("Timer running...")
         self._show_focus_view(True)
+        self._set_next_round_button_visible(False)
 
         self._schedule_next_reminder()
 
@@ -325,6 +341,7 @@ class RelaxTimerApp:
             self.timer_id = None
         self.next_fire = None
         self._set_phase("focus")
+        self._set_next_round_button_visible(False)
 
         self.start_btn.configure(state="normal")
         self.status_var.set("Timer stopped.")
@@ -364,9 +381,19 @@ class RelaxTimerApp:
             message = self.message_var.get().strip() or "Time to relax."
             send_notification("Relax Timer", f"Focus finished. {message}")
             self._set_phase("break")
+            self._show_focus_finished_popup()
         else:
             send_notification("Relax Timer", "Relax finished. Back to focus.")
-            self._set_phase("focus")
+            start_next = messagebox.askyesno(
+                "Relax Timer", "Relax finished.\n\nStart the next focus round?"
+            )
+            if start_next:
+                self._set_phase("focus")
+                self._set_next_round_button_visible(False)
+                self._schedule_next_reminder()
+            else:
+                self._pause_ready_for_next_round()
+            return
         self._schedule_next_reminder()
 
     def _schedule_status_update(self) -> None:
@@ -376,7 +403,10 @@ class RelaxTimerApp:
     def _update_status(self) -> None:
         if not self.running or self.next_fire is None:
             self.countdown_var.set("--:--")
-            self.focus_status_var.set("Timer paused.")
+            if self.phase == "ready":
+                self.focus_status_var.set("Relax finished. Ready for next round.")
+            else:
+                self.focus_status_var.set("Timer paused.")
             return
         remaining = self.next_fire - datetime.datetime.now()
         seconds_left = max(0, int(remaining.total_seconds()))
@@ -419,6 +449,7 @@ class RelaxTimerApp:
 
         self.start_btn.configure(fg_color=palette["fg"], hover_color=palette["accent"])
         self.focus_stop_btn.configure(fg_color=palette["fg"], hover_color=palette["accent"])
+        self.next_round_btn.configure(fg_color=palette["fg"], hover_color=palette["accent"])
 
         self.animal_picker.configure(
             button_color=palette["fg"],
@@ -498,12 +529,84 @@ class RelaxTimerApp:
             self.next_fire = datetime.datetime.now() + datetime.timedelta(
                 minutes=self.focus_minutes
             )
-        else:
+        elif phase == "break":
             self.phase_var.set("RELAX")
             self.runner_speed = 1
             self.next_fire = datetime.datetime.now() + datetime.timedelta(
                 minutes=self.break_minutes
             )
+        else:
+            self.phase_var.set("READY")
+            self.next_fire = None
+
+    def _pause_ready_for_next_round(self) -> None:
+        self.running = False
+        if self.timer_id is not None:
+            self.root.after_cancel(self.timer_id)
+            self.timer_id = None
+        self._set_phase("ready")
+        self.start_btn.configure(state="normal")
+        self.status_var.set("Relax finished. Waiting for your confirmation.")
+        self._set_next_round_button_visible(True)
+
+    def _start_next_round_from_focus(self) -> None:
+        if self.running:
+            return
+        self.running = True
+        self.start_btn.configure(state="disabled")
+        self.status_var.set("Timer running...")
+        self._set_next_round_button_visible(False)
+        self._set_phase("focus")
+        self._schedule_next_reminder()
+
+    def _set_next_round_button_visible(self, visible: bool) -> None:
+        if visible:
+            self.next_round_btn.pack(side="top")
+        else:
+            self.next_round_btn.pack_forget()
+
+    def _show_focus_finished_popup(self) -> None:
+        try:
+            minutes = int(round(self.break_minutes))
+        except Exception:
+            minutes = 5
+
+        palette = PALETTES.get(self.palette_var.get(), PALETTES["Emerald"])
+        popup = ctk.CTkToplevel(self.root)
+        popup.title("Relax Timer")
+        popup.geometry("420x180")
+        popup.resizable(False, False)
+        popup.attributes("-topmost", True)
+        popup.configure(fg_color=palette["bg"])
+
+        frame = ctk.CTkFrame(popup, fg_color=palette["panel"], corner_radius=8)
+        frame.pack(fill="both", expand=True, padx=16, pady=16)
+
+        ctk.CTkLabel(
+            frame,
+            text="Focus finished",
+            font=ctk.CTkFont(family="Consolas", size=18, weight="bold"),
+            text_color=palette["fg"],
+        ).pack(anchor="center", pady=(14, 6))
+
+        ctk.CTkLabel(
+            frame,
+            text=f"Relax time started ({minutes} min).",
+            font=ctk.CTkFont(family="Consolas", size=12),
+            text_color=palette["fg"],
+        ).pack(anchor="center", pady=(0, 12))
+
+        ctk.CTkButton(
+            frame,
+            text="OK",
+            command=popup.destroy,
+            width=100,
+            fg_color=palette["fg"],
+            text_color="black",
+            hover_color=palette["accent"],
+        ).pack(anchor="center")
+
+        popup.after(8000, popup.destroy)
 
 
 def main() -> None:

@@ -36,6 +36,41 @@ PALETTES: Dict[str, Dict[str, str]] = {
         "accent": "#8093B2",
         "canvas": "#12151A",
     },
+    "Lavender": {
+        "bg": "#120F1A",
+        "panel": "#1D1930",
+        "fg": "#CDB4FF",
+        "accent": "#9D4EDD",
+        "canvas": "#161327",
+    },
+    "Rose": {
+        "bg": "#160B10",
+        "panel": "#23101A",
+        "fg": "#FFAFCC",
+        "accent": "#FF5D8F",
+        "canvas": "#1B0D15",
+    },
+    "Cyber": {
+        "bg": "#07070B",
+        "panel": "#12101A",
+        "fg": "#00F5D4",
+        "accent": "#F15BB5",
+        "canvas": "#0D0B14",
+    },
+    "Ice": {
+        "bg": "#071218",
+        "panel": "#0F222C",
+        "fg": "#9BF6FF",
+        "accent": "#00BBF9",
+        "canvas": "#0A1B24",
+    },
+    "Forest": {
+        "bg": "#07140D",
+        "panel": "#102418",
+        "fg": "#95D5B2",
+        "accent": "#2D6A4F",
+        "canvas": "#0C1D14",
+    },
 }
 
 ANIMALS: Dict[str, List[str]] = {
@@ -66,5 +101,21 @@ ANIMALS: Dict[str, List[str]] = {
     "owl": [
         "  ,_,\n (O,O)\n /) (\\\n  o o ",
         "  ,_,\n (O,O)\n /) (\\\n o   o",
+    ],
+    "panda": [
+        "  .--.\n (o_o )\n /|_|\\\n  o o ",
+        "  .--.\n (o_o )\n /|_|\\\n o   o",
+    ],
+    "penguin": [
+        "  _~_\n (o o)\n / V \\\n/(   )\\\n  o o ",
+        "  _~_\n (o o)\n / V \\\n/(   )\\\n o   o",
+    ],
+    "hamster": [
+        " (\\_/)\n (o.o)\n /|_|\\\n  o o ",
+        " (\\_/)\n (o.o)\n /|_|\\\n o   o",
+    ],
+    "dino": [
+        "  __\n / _)\n/ /  \n\\ \\__\n o  o ",
+        "  __\n / _)\n/ /  \n\\ \\__\n o   o",
     ],
 }

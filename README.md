@@ -20,6 +20,11 @@ If you want a simple "click to run" experience, use the GUI version:
 
 Set your interval, press Start, and Windows notifications will appear on schedule.
 
+## GUI behavior
+
+- Start switches into a focus view (big countdown + running animal).
+- Stop returns to settings.
+
 ## Developer setup
 
 ```powershell

@@ -15,8 +15,7 @@ python relax_timer.py -m "Lie back and breathe"  # customize the headline messag
 
 If you want a simple "click to run" experience, use the GUI version:
 
-- Double-click `RelaxTimer.pyw` to open the window.
-- Or double-click `RelaxTimer.bat` (uses `pythonw` so no console window).
+- Double-click `RelaxTimer.bat` (it will prefer `dist\RelaxTimer.exe` if you built it, otherwise it uses `pythonw`).
 
 Set your interval, press Start, and Windows notifications will appear on schedule.
 
@@ -41,6 +40,12 @@ python .\RelaxTimer.pyw
 pip install pyinstaller
 pyinstaller --onefile --windowed --name RelaxTimer RelaxTimer.pyw
 ```
+
+Or run the helper scripts:
+
+- Build: `.\scripts\build_exe.ps1`
+- Run: `.\scripts\run.ps1`
+- Clean artifacts: `.\scripts\clean.ps1`
 
 ## Tip
 

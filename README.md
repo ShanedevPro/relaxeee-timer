@@ -69,3 +69,7 @@ Or use the included helper scripts:
 ## Current Status
 
 This repository is maintained as a compact productivity utility focused on local desktop use rather than cloud sync or team features.
+
+## Public Review Note
+
+- Public privacy reviews should verify that no notification tokens, personal reminder history, private screenshots, or local Windows user paths are committed.

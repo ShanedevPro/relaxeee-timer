@@ -1,31 +1,38 @@
 # Relax Timer
 
-This tiny utility reminds you to take a short pause every few minutes. It prints the next reminder time, emits a terminal beep, and raises a Windows notification when available.
+Relax Timer is a lightweight break reminder for focused work sessions, with both a command-line mode and a Windows-friendly desktop interface.
 
-## Usage
+## Why It Exists
+
+- Nudge yourself to step away from the keyboard before fatigue builds up.
+- Use a minimal terminal timer when you want zero UI overhead.
+- Switch to the desktop app when you want notifications, countdown visuals, and a simple focus/relax loop.
+
+## Features
+
+- Configurable reminder interval from the CLI
+- Custom reminder message support
+- Optional finite reminder counts for short sessions
+- Windows toast notifications and system beep support
+- Desktop GUI with focus and relax phases, countdown state, and visual customization
+
+## Tech Stack
+
+- Python
+- Tkinter + CustomTkinter
+- Windows notifications via PowerShell
+
+## Quick Start
+
+### CLI mode
 
 ```bash
-python relax_timer.py          # remind every 25 minutes, forever
-python relax_timer.py -i 30    # remind every 30 minutes
-python relax_timer.py -n 3     # stop after three reminders
-python relax_timer.py -m "Lie back and breathe"  # customize the headline message
+python relax_timer.py
+python relax_timer.py --interval 30
+python relax_timer.py --count 4 --message "Stand up and stretch."
 ```
 
-## Windows click-to-run
-
-If you want a simple "click to run" experience, use the GUI version:
-
-- Double-click `RelaxTimer.bat` (it will prefer `dist\RelaxTimer.exe` if you built it, otherwise it uses `pythonw`).
-
-Set your interval, press Start, and Windows notifications will appear on schedule.
-
-## GUI behavior
-
-- Start switches into a focus view (big countdown + running animal).
-- Stop returns to settings.
-- The timer auto-switches between Focus and Relax (Pomodoro-style).
-
-## Developer setup
+### Desktop mode (Windows)
 
 ```powershell
 python -m venv .venv
@@ -34,19 +41,31 @@ pip install -r requirements.txt
 python .\RelaxTimer.pyw
 ```
 
-## Build EXE (PyInstaller)
+If you want a click-to-run workflow, double-click `RelaxTimer.bat`.
+
+## Project Structure
+
+- `relax_timer.py`: terminal-first reminder flow
+- `RelaxTimer.pyw`: GUI desktop app for Windows
+- `app_notifications.py`: notification helper
+- `app_assets.py`: visual assets used by the GUI
+- `scripts/`: helper scripts for running, building, and cleaning
+
+## Packaging
+
+To build a standalone Windows executable:
 
 ```powershell
 pip install pyinstaller
 pyinstaller --onefile --windowed --name RelaxTimer RelaxTimer.pyw
 ```
 
-Or run the helper scripts:
+Or use the included helper scripts:
 
-- Build: `.\scripts\build_exe.ps1`
-- Run: `.\scripts\run.ps1`
-- Clean artifacts: `.\scripts\clean.ps1`
+- `.\scripts\build_exe.ps1`
+- `.\scripts\run.ps1`
+- `.\scripts\clean.ps1`
 
-## Tip
+## Current Status
 
-Let the script run in the background (a terminal tab or split) while you work. When the reminder fires, pause, step away from the keyboard, and stretch before resuming work.
+This repository is maintained as a compact productivity utility focused on local desktop use rather than cloud sync or team features.
